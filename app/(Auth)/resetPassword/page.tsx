@@ -4,7 +4,7 @@ import axios from "axios";
 import { UserObj } from "@/types/userForm";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-export default function Login() {
+export default function ResetPassword() {
     const router = useRouter();
     const [user, setUser] = useState<UserObj>({
         email: "",
@@ -14,15 +14,15 @@ export default function Login() {
     const handleFormSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         try {
-            const response = await axios.post("/api/login", user);
-            if (response.status === 200) router.replace("/");
+            const response = await axios.post("/api/resetpassword", user);
+            if (response.status === 200) router.replace("/login");
         } catch (error) {
-            console.log("Error in login", error);
+            console.log("Error in reset password", error);
         }
     };
     return (
         <div>
-            <h1>Login</h1>
+            <h1>Reset Password</h1>
             <form onSubmit={(e) => handleFormSubmit(e)}>
                 <label htmlFor="email">Email</label>
                 <input
@@ -37,23 +37,8 @@ export default function Login() {
                     type="text"
                     value={user.email}
                 />
-                <label htmlFor="username">Password</label>
-                <input
-                    required
-                    className="border-2"
-                    type="password"
-                    autoComplete="off"
-                    value={user.password}
-                    onChange={(e) =>
-                        setUser((prevUser: UserObj) => ({
-                            ...prevUser,
-                            password: e.target.value,
-                        }))
-                    }
-                />
-                <button type="submit">Login</button>
-                <Link href="/signup">Signup here</Link>
-                <Link href="/resetPassword">Reset password</Link>
+                <button type="submit">Submit</button>
+                <Link href="/login">Login here</Link>
             </form>
         </div>
     );
