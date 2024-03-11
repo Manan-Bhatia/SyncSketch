@@ -6,7 +6,7 @@ const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
     title: "SyncSketch - Collaborative Whiteboard",
-    description: "Online Collaborative Whiteboard",
+    description: "SyncSketch - Online Collaborative Whiteboard",
 };
 
 export default function RootLayout({
@@ -16,7 +16,7 @@ export default function RootLayout({
 }>) {
     return (
         <html lang="en">
-            <body className={inter.className}>{children}</body>
+            <body className={`${inter.className} h-dvh`}>{children}</body>
         </html>
     );
 }
