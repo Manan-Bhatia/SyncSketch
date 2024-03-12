@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
 
         // if user exists, generate a token
         const forgotPasswordToken = await bcryptjs.hash(email, 10);
-        const forgotPasswordTokenExpiry = new Date(Date.now() + 90000); // 15 minutes
+        const forgotPasswordTokenExpiry = new Date(Date.now() + 900000); // 15 minutes
 
         // update user details in the db
         await User.findOneAndUpdate(
