@@ -1,17 +1,40 @@
 import { NextRequest, NextResponse } from "next/server";
+import { jwtVerify } from "jose";
 const publicPaths = ["/login", "/signup", "/resetPassword"];
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
     const path: string = request.nextUrl.pathname;
     const isPublicPath = publicPaths.includes(path);
     const token: string = request.cookies.get("token")?.value || "";
+    let tokenValid: boolean = false;
 
-    // redirect to "/" if user is already logged in
-    if (isPublicPath && token) {
-        return NextResponse.redirect(new URL("/", request.nextUrl));
+    if (token) {
+        try {
+            await jwtVerify(
+                token,
+                new TextEncoder().encode(process.env.TOKEN_SECRET!)
+            );
+            tokenValid = true;
+            console.log("valid");
+        } catch (error) {
+            request.cookies.delete("token");
+            console.log("not valid");
+        }
     }
-    // redirect to "/login" if user is not logged in
-    if (!isPublicPath && !token) {
-        return NextResponse.redirect(new URL("/login", request.nextUrl));
+
+    if (isPublicPath) {
+        if (tokenValid) {
+            return NextResponse.redirect(new URL("/", request.nextUrl));
+        }
+        return;
+    } else {
+        if (!tokenValid) {
+            const response = NextResponse.redirect(
+                new URL("/login", request.nextUrl)
+            );
+            response.cookies.set("token", "", { expires: new Date(0) });
+            return response;
+        }
+        return;
     }
 }
 
