@@ -14,10 +14,8 @@ export async function middleware(request: NextRequest) {
                 new TextEncoder().encode(process.env.TOKEN_SECRET!)
             );
             tokenValid = true;
-            console.log("valid");
         } catch (error) {
             request.cookies.delete("token");
-            console.log("not valid");
         }
     }
 
@@ -39,5 +37,11 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-    matcher: ["/login", "/signup", "/", "/resetPassword"],
+    matcher: [
+        "/login",
+        "/signup",
+        "/",
+        "/resetPassword",
+        "/resetPassword/:token", //TODO: make this public
+    ],
 };
