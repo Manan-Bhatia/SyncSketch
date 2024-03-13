@@ -4,6 +4,7 @@ import { UserObj } from "@/types/userForm";
 import User from "@/models/userModel";
 import bcryptjs from "bcryptjs";
 import jwt from "jsonwebtoken";
+import { SignJWT } from "jose";
 
 // connect to db
 connect();
@@ -41,9 +42,17 @@ export async function POST(request: NextRequest) {
             id: user._id,
         };
         // generating token
-        const token = jwt.sign(tokenData, process.env.TOKEN_SECRET!, {
-            expiresIn: "1d",
-        });
+        // const token = jwt.sign(tokenData, process.env.TOKEN_SECRET!, {
+        //     expiresIn: "1d",
+        // });
+        const token = await new SignJWT(tokenData)
+            .setProtectedHeader({
+                alg: "HS256",
+                typ: "JWT",
+            })
+            .setExpirationTime("1day")
+            .setIssuedAt(Math.floor(Date.now() / 1000))
+            .sign(new TextEncoder().encode(process.env.TOKEN_SECRET!));
         // building the response object
         const response = NextResponse.json(
             {
