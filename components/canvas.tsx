@@ -6,8 +6,9 @@ import {
     Scribble,
 } from "@/helpers/canvasHelper";
 import Konva from "konva";
+import { Transformer } from "react-konva";
 import { KonvaEventObject } from "konva/lib/Node";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Stage, Layer, Line, Rect, Circle as KonvaCircle } from "react-konva";
 import { v4 as uuidv4 } from "uuid";
 
@@ -17,12 +18,25 @@ export default function Canvas({
     props: {
         width: number;
         height: number;
+        defaultMode: DrawAction;
+        color: string;
+        brushSize: number;
     };
 }) {
     const stageRef = useRef<Konva.Stage>(null);
     const currentShapeRef = useRef<String>();
-    const [drawAction, setDrawAction] = useState<DrawAction>(DrawAction.Circle);
-    const [color, setColor] = useState<string>("#000");
+    const [drawAction, setDrawAction] = useState<DrawAction>(props.defaultMode);
+    const [isDraggable, setisDraggable] = useState<boolean>(
+        drawAction === DrawAction.Select
+    );
+    const [color, setColor] = useState<string>(props.color);
+    const [strokeWidth, setStrokeWidth] = useState<number>(props.brushSize);
+    useEffect(() => {
+        setDrawAction(props.defaultMode);
+        setisDraggable(props.defaultMode === DrawAction.Select);
+        setColor(props.color);
+        setStrokeWidth(props.brushSize);
+    }, [props.defaultMode, props.color, props.brushSize]);
     // shapes
     const [scribbles, setScribbles] = useState<Scribble[]>([]);
     const [rectangles, setRectangles] = useState<Rectangle[]>([]);
@@ -45,6 +59,7 @@ export default function Canvas({
                         id,
                         color,
                         points: [x, y],
+                        strokeWidth,
                     },
                 ]);
                 break;
@@ -59,6 +74,7 @@ export default function Canvas({
                         height: 1,
                         x,
                         y,
+                        strokeWidth,
                     },
                 ]);
                 break;
@@ -72,8 +88,14 @@ export default function Canvas({
                         radius: 1,
                         x,
                         y,
+                        strokeWidth,
                     },
                 ]);
+                break;
+            }
+            case DrawAction.Eraser: {
+                //TODO: Implement eraser
+                console.log("To be implemented");
                 break;
             }
         }
@@ -128,6 +150,10 @@ export default function Canvas({
                 });
                 break;
             }
+            case DrawAction.Eraser: {
+                //TODO: Implement eraser
+                break;
+            }
         }
     };
 
@@ -135,10 +161,18 @@ export default function Canvas({
         currentShapeRef.current = undefined;
     };
 
+    const transformerRef = useRef<Konva.Transformer>(null);
+    const onShapeclick = (e: KonvaEventObject<MouseEvent>) => {
+        if (drawAction != DrawAction.Select) return;
+        transformerRef.current?.nodes([e.currentTarget]);
+    };
+    const onBackgroundClick = (e: KonvaEventObject<MouseEvent>) => {
+        transformerRef.current?.nodes([]);
+    };
     return (
         <Stage
             ref={stageRef}
-            className="border-2 border-black overflow-hidden"
+            className="bg-neutral-200 overflow-hidden"
             width={props.width}
             height={props.height}
             onMouseDown={startDrawing}
@@ -147,24 +181,35 @@ export default function Canvas({
             onMouseLeave={stopDrawing}
         >
             <Layer>
+                <Rect
+                    x={0}
+                    y={0}
+                    onClick={onBackgroundClick}
+                    height={props.height}
+                    width={props.width}
+                />
                 {scribbles.map((scribble, i) => (
                     <Line
                         key={i}
                         points={scribble.points}
                         stroke={scribble.color}
-                        strokeWidth={5}
+                        strokeWidth={scribble.strokeWidth}
+                        draggable={isDraggable}
+                        onClick={onShapeclick}
                     />
                 ))}
                 {rectangles.map((rectangle) => (
                     <Rect
                         key={rectangle.id}
-                        x={rectangle?.x}
-                        y={rectangle?.y}
-                        height={rectangle?.height}
-                        width={rectangle?.width}
-                        stroke={rectangle?.color}
-                        id={rectangle?.id}
-                        strokeWidth={4}
+                        x={rectangle.x}
+                        y={rectangle.y}
+                        height={rectangle.height}
+                        width={rectangle.width}
+                        stroke={rectangle.color}
+                        id={rectangle.id}
+                        strokeWidth={rectangle.strokeWidth}
+                        draggable={isDraggable}
+                        onClick={onShapeclick}
                     />
                 ))}
                 {circles.map((circle) => (
@@ -174,9 +219,14 @@ export default function Canvas({
                         y={circle.y}
                         radius={circle.radius}
                         stroke={circle.color}
-                        // strokeWidth={4}
+                        strokeWidth={circle.strokeWidth}
+                        draggable={isDraggable}
+                        onClick={onShapeclick}
                     />
                 ))}
+            </Layer>
+            <Layer>
+                <Transformer ref={transformerRef} />
             </Layer>
         </Stage>
     );

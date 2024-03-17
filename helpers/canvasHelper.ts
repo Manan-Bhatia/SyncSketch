@@ -1,5 +1,6 @@
 export enum DrawAction {
     Select,
+    Eraser,
     Scribble,
     Rectangle,
     Circle,
@@ -8,6 +9,7 @@ export enum DrawAction {
 export type Shape = {
     id: string;
     color: string;
+    strokeWidth: number;
 };
 
 export type Scribble = Shape & {

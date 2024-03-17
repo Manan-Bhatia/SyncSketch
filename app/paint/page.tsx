@@ -1,9 +1,22 @@
 "use client";
+import { DrawAction } from "@/helpers/canvasHelper";
 import dynamic from "next/dynamic";
-import { useEffect, useRef, useState } from "react";
+import { ReactNode, useEffect, useRef, useState } from "react";
 const Canvas = dynamic(() => import("@/components/canvas"), { ssr: false });
+import { Toaster, toast } from "react-hot-toast";
+import {
+    FaPencilAlt,
+    FaRegCircle,
+    FaRegSquare,
+    FaEraser,
+    FaRegBookmark,
+    FaBookmark,
+} from "react-icons/fa";
+import { FaArrowPointer } from "react-icons/fa6";
+import { HexColorPicker } from "react-colorful";
 export default function Paint() {
     const parent = useRef<HTMLDivElement>(null);
+    const brushBar = useRef<HTMLDivElement>(null);
     const [size, setSize] = useState<{
         width: number;
         height: number;
@@ -37,9 +50,236 @@ export default function Paint() {
         };
     }, []);
 
+    // defaultMode for canvas
+    const [defaultMode, setDefaultMode] = useState<DrawAction>(
+        DrawAction.Select
+    );
+    const icons: { [key: string]: ReactNode } = {
+        [DrawAction.Select]: (
+            <FaArrowPointer
+                size={24}
+                color={`${defaultMode === DrawAction.Select ? "#023E8A" : ""}`}
+            />
+        ),
+        [DrawAction.Scribble]: (
+            <FaPencilAlt
+                size={24}
+                color={`${
+                    defaultMode === DrawAction.Scribble ? "#023E8A" : ""
+                }`}
+            />
+        ),
+        [DrawAction.Rectangle]: (
+            <FaRegSquare
+                size={24}
+                color={`${
+                    defaultMode === DrawAction.Rectangle ? "#023E8A" : ""
+                }`}
+            />
+        ),
+        [DrawAction.Circle]: (
+            <FaRegCircle
+                size={24}
+                color={`${defaultMode === DrawAction.Circle ? "#023E8A" : ""}`}
+            />
+        ),
+        [DrawAction.Eraser]: (
+            <FaEraser
+                size={24}
+                color={`${defaultMode === DrawAction.Eraser ? "#023E8A" : ""}`}
+            />
+        ),
+    };
+
+    // color
+    const [color, setColor] = useState<string>("#000000");
+    // color swatch
+    const [colorSwatch, setColorSwatch] = useState<string[]>(["#000000"]);
+    // color picker visibility
+    const [colorPickerVisible, setColorPickerVisible] =
+        useState<boolean>(false);
+    // brush size
+    const [brushSize, setBrushSize] = useState<number>(5);
     return (
-        <main ref={parent} className="h-full w-full p-6">
-            {size.width > 1 && size.height > 1 && <Canvas props={size} />}
+        <main ref={parent} className="h-full w-full relative">
+            <Toaster />
+            {size.width > 1 && size.height > 1 && (
+                <Canvas
+                    props={{
+                        width: size.width,
+                        height: size.height,
+                        defaultMode,
+                        color,
+                        brushSize,
+                    }}
+                />
+            )}
+            {/* Mode Selection */}
+            <div className="top-1/2 -translate-y-1/2 absolute bg-white m-2 p-1.5  rounded-md flex flex-col gap-3.5 justify-center">
+                {Object.keys(DrawAction)
+                    .filter((key) => isNaN(Number(key)))
+                    .map((action, index) => {
+                        return (
+                            <div className="relative flex items-center">
+                                <button
+                                    className={
+                                        "p-1.5 peer" +
+                                        `${
+                                            defaultMode ===
+                                            DrawAction[
+                                                action as keyof typeof DrawAction
+                                            ]
+                                                ? " bg-[#CAF0F8] rounded"
+                                                : ""
+                                        }`
+                                    }
+                                    onClick={() =>
+                                        setDefaultMode(
+                                            DrawAction[
+                                                action as keyof typeof DrawAction
+                                            ]
+                                        )
+                                    }
+                                    key={index}
+                                >
+                                    {
+                                        icons[
+                                            DrawAction[
+                                                action as keyof typeof DrawAction
+                                            ]
+                                        ]
+                                    }
+                                </button>
+                                <p className="absolute bg-black text-white hidden peer-hover:block left-[125%]  text-base p-1.5 rounded-md">
+                                    {action}
+                                </p>
+                            </div>
+                        );
+                    })}
+            </div>
+            {/* Brush Options */}
+            <div
+                className="overflow-hidden absolute left-1/2 -translate-x-1/2 bottom-0 bg-white m-2 p-1.5  rounded-md flex gap-3.5 items-center"
+                ref={brushBar}
+            >
+                {/* brush size */}
+                <label htmlFor="brushSize">{brushSize}</label>
+                <input
+                    type="range"
+                    id="brushSize"
+                    name="brushSize"
+                    min={1}
+                    max={30}
+                    value={brushSize}
+                    onChange={(e) => setBrushSize(parseInt(e.target.value))}
+                />
+                {/* color swatch */}
+                <div className="flex gap-2 items-center">
+                    {colorSwatch?.map((hex, index) => {
+                        return (
+                            <div
+                                key={index}
+                                style={{ backgroundColor: hex }}
+                                className="w-7 flex items-center justify-center aspect-square rounded-full hover:cursor-pointer hover:shadow-lg"
+                                onClick={() => setColor(hex)}
+                            >
+                                <div
+                                    style={{
+                                        visibility:
+                                            color === hex
+                                                ? "visible"
+                                                : "hidden",
+                                    }}
+                                    className="w-3 aspect-square bg-white rounded-full"
+                                ></div>
+                            </div>
+                        );
+                    })}
+                </div>
+                {/* color picker preview */}
+                <div className="flex items-center">
+                    <div
+                        className="w-7 aspect-square rounded-s-md hover:shadow-lg cursor-pointer "
+                        style={{ backgroundColor: color }}
+                        onClick={() =>
+                            setColorPickerVisible(!colorPickerVisible)
+                        }
+                    ></div>
+                    <label
+                        htmlFor="hexCode"
+                        className="w-7 aspect-square bg-gray-200 flex items-center justify-center"
+                    >
+                        #
+                    </label>
+                    <input
+                        type="text"
+                        name="hexCode"
+                        id="hexCode"
+                        maxLength={6}
+                        value={color.slice(1)}
+                        className="focus:outline-none px-1 w-20 rounded-e-md border-r-2 border-y-2 border-gray-200 mr-1"
+                    />
+                    {colorSwatch.includes(color) ? (
+                        // already bookmarked
+                        <FaBookmark
+                            size={24}
+                            className="cursor-pointer"
+                            onClick={() => {
+                                if (colorSwatch.length > 1)
+                                    setColorSwatch(
+                                        colorSwatch.filter(
+                                            (hex) => hex !== color
+                                        )
+                                    );
+                                else
+                                    toast.error("Mimimum 1 color required", {
+                                        duration: 2000,
+                                        position: "bottom-center",
+                                    });
+                            }}
+                        />
+                    ) : (
+                        // create bookmark
+                        <FaRegBookmark
+                            size={24}
+                            className="cursor-pointer"
+                            onClick={() => {
+                                if (colorSwatch.length < 6)
+                                    setColorSwatch([...colorSwatch, color]);
+                                else
+                                    toast.error("Maximum 6 colors allowed", {
+                                        duration: 2000,
+                                        position: "bottom-center",
+                                    });
+                            }}
+                        />
+                    )}
+                </div>
+            </div>
+            {/* color picker */}
+            {colorPickerVisible && (
+                <div
+                    style={{
+                        bottom: brushBar.current
+                            ? `${
+                                  brushBar.current.getBoundingClientRect()
+                                      .height +
+                                  parseInt(
+                                      window.getComputedStyle(brushBar.current)
+                                          .paddingBlock
+                                  ) +
+                                  parseInt(
+                                      window.getComputedStyle(brushBar.current)
+                                          .marginBlock
+                                  ) + 2
+                              }px`
+                            : "0px",
+                    }}
+                    className="absolute left-1/2 -translate-x-1/2 bottom-2"
+                >
+                    <HexColorPicker color={color} onChange={setColor} />
+                </div>
+            )}
         </main>
     );
 }
