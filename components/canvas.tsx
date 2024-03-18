@@ -14,6 +14,7 @@ import { v4 as uuidv4 } from "uuid";
 
 export default function Canvas({
     props,
+    clearCanvas,
 }: {
     props: {
         width: number;
@@ -22,6 +23,7 @@ export default function Canvas({
         color: string;
         brushSize: number;
     };
+    clearCanvas: boolean;
 }) {
     const stageRef = useRef<Konva.Stage>(null);
     const currentShapeRef = useRef<String>();
@@ -31,12 +33,20 @@ export default function Canvas({
     );
     const [color, setColor] = useState<string>(props.color);
     const [strokeWidth, setStrokeWidth] = useState<number>(props.brushSize);
+    const drawingLayer = useRef<Konva.Layer>(null);
     useEffect(() => {
         setDrawAction(props.defaultMode);
         setisDraggable(props.defaultMode === DrawAction.Select);
         setColor(props.color);
         setStrokeWidth(props.brushSize);
-    }, [props.defaultMode, props.color, props.brushSize]);
+        if (clearCanvas && drawingLayer.current !== null) {
+            drawingLayer.current.removeChildren();
+            drawingLayer.current.draw();
+            setScribbles([]);
+            setRectangles([]);
+            setCircles([]);
+        }
+    }, [props.defaultMode, props.color, props.brushSize, clearCanvas]);
     // shapes
     const [scribbles, setScribbles] = useState<Scribble[]>([]);
     const [rectangles, setRectangles] = useState<Rectangle[]>([]);
@@ -180,7 +190,7 @@ export default function Canvas({
             onMouseUp={stopDrawing}
             onMouseLeave={stopDrawing}
         >
-            <Layer>
+            <Layer ref={drawingLayer}>
                 <Rect
                     x={0}
                     y={0}

@@ -11,6 +11,7 @@ import {
     FaEraser,
     FaRegBookmark,
     FaBookmark,
+    FaTrashAlt,
 } from "react-icons/fa";
 import { FaArrowPointer } from "react-icons/fa6";
 import { HexColorPicker } from "react-colorful";
@@ -100,6 +101,8 @@ export default function Paint() {
         useState<boolean>(false);
     // brush size
     const [brushSize, setBrushSize] = useState<number>(5);
+    // clear button
+    const [clearCanvas, setClearCanvas] = useState<boolean>(false);
     return (
         <main ref={parent} className="h-full w-full relative">
             <Toaster />
@@ -112,6 +115,7 @@ export default function Paint() {
                         color,
                         brushSize,
                     }}
+                    clearCanvas={clearCanvas}
                 />
             )}
             {/* Mode Selection */}
@@ -256,6 +260,21 @@ export default function Paint() {
                     )}
                 </div>
             </div>
+            {/* clear canvas option */}
+            <div className="absolute right-2 bg-white bottom-2  p-1.5 rounded-md">
+                <div
+                    className="flex gap-1 cursor-pointer"
+                    onClick={() => {
+                        setClearCanvas(!clearCanvas);
+                        setTimeout(() => {
+                            setClearCanvas(false);
+                        }, 0);
+                    }}
+                >
+                    <FaTrashAlt size={24} />
+                    <p>Clear</p>
+                </div>
+            </div>
             {/* color picker */}
             {colorPickerVisible && (
                 <div
@@ -271,7 +290,8 @@ export default function Paint() {
                                   parseInt(
                                       window.getComputedStyle(brushBar.current)
                                           .marginBlock
-                                  ) + 2
+                                  ) +
+                                  2
                               }px`
                             : "0px",
                     }}
