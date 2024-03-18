@@ -43,5 +43,6 @@ export const config = {
         "/",
         "/resetPassword",
         "/resetPassword/:token", //TODO: make this public
+        //TODO: add whiteboard/:id path and check if whiteboard exists
     ],
 };

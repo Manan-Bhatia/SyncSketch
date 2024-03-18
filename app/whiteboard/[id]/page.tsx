@@ -12,10 +12,14 @@ import {
     FaRegBookmark,
     FaBookmark,
     FaTrashAlt,
+    FaEdit,
+    FaCheck,
+    FaSave,
 } from "react-icons/fa";
 import { FaArrowPointer } from "react-icons/fa6";
 import { HexColorPicker } from "react-colorful";
-export default function Paint() {
+import axios from "axios";
+export default function Whiteboard({ params }: { params: { id: string } }) {
     const parent = useRef<HTMLDivElement>(null);
     const brushBar = useRef<HTMLDivElement>(null);
     const [size, setSize] = useState<{
@@ -25,9 +29,22 @@ export default function Paint() {
         width: 1,
         height: 1,
     });
+    // get whiteboard details
+    const getWhiteboard = async () => {
+        try {
+            const res = await axios.post("/api/whiteboard/get", {
+                id: params.id,
+            });
+            setWhiteboardTitle(res.data.title);
+            setColorSwatch(res.data.drawingData.colors);
+        } catch (error) {
+            console.log("Error in getting whiteboard", error);
+        }
+    };
     useEffect(() => {
+        getWhiteboard();
         handleResize();
-    }, []);
+    }, [params.id]);
     const handleResize = () => {
         if (parent.current) {
             const paddingX = getComputedStyle(parent.current).paddingInline;
@@ -95,7 +112,7 @@ export default function Paint() {
     // color
     const [color, setColor] = useState<string>("#000000");
     // color swatch
-    const [colorSwatch, setColorSwatch] = useState<string[]>(["#000000"]);
+    const [colorSwatch, setColorSwatch] = useState<string[]>([]);
     // color picker visibility
     const [colorPickerVisible, setColorPickerVisible] =
         useState<boolean>(false);
@@ -103,6 +120,22 @@ export default function Paint() {
     const [brushSize, setBrushSize] = useState<number>(5);
     // clear button
     const [clearCanvas, setClearCanvas] = useState<boolean>(false);
+    // whiteboard title
+    const whiteboardTitleRef = useRef<HTMLInputElement>(null);
+    const [editingTitle, setEditingTitle] = useState<boolean>(false);
+    const [whiteboardTitle, setWhiteboardTitle] = useState<string>("Untitled");
+    const updateWhiteboard = async () => {
+        try {
+            await axios.put("/api/whiteboard/update", {
+                id: params.id,
+                title: whiteboardTitle,
+            });
+        } catch (error) {
+            console.log("Error in updating whiteboard", error);
+        }
+    };
+    // saving whiteboard
+    const [saveCanvas, setSaveCanvas] = useState<boolean>(false);
     return (
         <main ref={parent} className="h-full w-full relative">
             <Toaster />
@@ -116,8 +149,64 @@ export default function Paint() {
                         brushSize,
                     }}
                     clearCanvas={clearCanvas}
+                    saveCanvas={saveCanvas}
+                    colorSwatch={colorSwatch}
+                    id={params.id}
                 />
             )}
+            {/* whiteboard title */}
+            <div className="top-2 bg-white rounded-md p-1.5 flex gap-2 items-center absolute left-1/2 -translate-x-1/2 ">
+                <input
+                    type="text"
+                    value={whiteboardTitle}
+                    onChange={(e) => setWhiteboardTitle(e.target.value)}
+                    name="whiteboardTitle"
+                    ref={whiteboardTitleRef}
+                    size={
+                        whiteboardTitle.length > 5
+                            ? whiteboardTitle.length - 5
+                            : 1
+                    }
+                    className=" focus:outline-none"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onDoubleClick={() => {
+                        if (whiteboardTitleRef.current) {
+                            whiteboardTitleRef.current.focus();
+                            const len = whiteboardTitle.length;
+                            whiteboardTitleRef.current.setSelectionRange(
+                                len,
+                                len
+                            );
+                        }
+                        setEditingTitle(true);
+                    }}
+                />
+                {editingTitle || (
+                    <FaEdit
+                        size={20}
+                        className="cursor-pointer"
+                        onClick={() => {
+                            if (whiteboardTitleRef.current) {
+                                whiteboardTitleRef.current.focus();
+                            }
+                            setEditingTitle(true);
+                        }}
+                    />
+                )}
+                {editingTitle && (
+                    <FaCheck
+                        size={20}
+                        className="cursor-pointer"
+                        onClick={() => {
+                            if (whiteboardTitleRef.current) {
+                                whiteboardTitleRef.current.blur();
+                            }
+                            setEditingTitle(false);
+                            updateWhiteboard();
+                        }}
+                    />
+                )}
+            </div>
             {/* Mode Selection */}
             <div className="top-1/2 -translate-y-1/2 absolute bg-white m-2 p-1.5  rounded-md flex flex-col gap-3.5 justify-center">
                 {Object.keys(DrawAction)
@@ -260,8 +349,8 @@ export default function Paint() {
                     )}
                 </div>
             </div>
-            {/* clear canvas option */}
-            <div className="absolute right-2 bg-white bottom-2  p-1.5 rounded-md">
+            {/* clear canvas and save canvas option */}
+            <div className=" flex gap-4 absolute right-2 bg-white bottom-2  p-1.5 rounded-md">
                 <div
                     className="flex gap-1 cursor-pointer"
                     onClick={() => {
@@ -273,6 +362,18 @@ export default function Paint() {
                 >
                     <FaTrashAlt size={24} />
                     <p>Clear</p>
+                </div>
+                <div
+                    className="flex gap-1 cursor-pointer"
+                    onClick={() => {
+                        setSaveCanvas(!saveCanvas);
+                        setTimeout(() => {
+                            setSaveCanvas(false);
+                        }, 0);
+                    }}
+                >
+                    <FaSave size={24} />
+                    <p>Save</p>
                 </div>
             </div>
             {/* color picker */}

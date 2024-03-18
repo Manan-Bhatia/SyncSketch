@@ -11,10 +11,16 @@ import { KonvaEventObject } from "konva/lib/Node";
 import { useState, useRef, useEffect } from "react";
 import { Stage, Layer, Line, Rect, Circle as KonvaCircle } from "react-konva";
 import { v4 as uuidv4 } from "uuid";
+import axios from "axios";
+import { WhiteBoardFields } from "@/types/WhiteboardFields";
+import toast from "react-hot-toast";
 
 export default function Canvas({
     props,
     clearCanvas,
+    saveCanvas,
+    id,
+    colorSwatch,
 }: {
     props: {
         width: number;
@@ -24,6 +30,9 @@ export default function Canvas({
         brushSize: number;
     };
     clearCanvas: boolean;
+    saveCanvas: boolean;
+    id: string;
+    colorSwatch: string[];
 }) {
     const stageRef = useRef<Konva.Stage>(null);
     const currentShapeRef = useRef<String>();
@@ -39,18 +48,108 @@ export default function Canvas({
         setisDraggable(props.defaultMode === DrawAction.Select);
         setColor(props.color);
         setStrokeWidth(props.brushSize);
-        if (clearCanvas && drawingLayer.current !== null) {
-            drawingLayer.current.removeChildren();
-            drawingLayer.current.draw();
-            setScribbles([]);
-            setRectangles([]);
-            setCircles([]);
+
+        if (clearCanvas) {
+            handleClearCanvas();
         }
-    }, [props.defaultMode, props.color, props.brushSize, clearCanvas]);
+        if (saveCanvas) {
+            handleSaveCanvas();
+        }
+    }, [
+        props.defaultMode,
+        props.color,
+        props.brushSize,
+        clearCanvas,
+        saveCanvas,
+        colorSwatch,
+    ]);
+    // get canvas
+    const [canvasData, setCanvasData] = useState<WhiteBoardFields>();
+    const getCanvasData = async () => {
+        try {
+            const res = await axios.post("/api/whiteboard/get", {
+                id: id,
+            });
+            setCanvasData(res.data);
+            // setting the shapes
+            setScribbles(res.data.drawingData.shapes.scribbles);
+            setRectangles(res.data.drawingData.shapes.rectangles);
+            setCircles(res.data.drawingData.shapes.circles);
+        } catch (error) {
+            console.log("Error getting whiteboard data", error);
+        }
+    };
+    useEffect(() => {
+        getCanvasData();
+    }, []);
+    // clear canvas
+    const handleClearCanvas = async () => {
+        if (drawingLayer.current === null) return;
+        drawingLayer.current.removeChildren();
+        drawingLayer.current.draw();
+        setScribbles([]);
+        setRectangles([]);
+        setCircles([]);
+        try {
+            await axios.put("/api/whiteboard/update", {
+                id: id,
+                drawingData: {
+                    shapes: {
+                        scribbles: [],
+                        rectangles: [],
+                        circles: [],
+                    },
+                    colors: colorSwatch,
+                },
+            });
+            await getCanvasData();
+            toast.success("Cleared successfully", {
+                duration: 2000,
+                position: "bottom-center",
+            });
+            setTimeout(() => {
+                toast.success("Saved successfully", {
+                    duration: 2000,
+                    position: "bottom-center",
+                });
+            }, 2200);
+        } catch (error) {
+            console.log("Error in clearing canvas", error);
+        }
+    };
+    // save canvas
+    const handleSaveCanvas = async () => {
+        try {
+            await axios.put("/api/whiteboard/update", {
+                id: id,
+                drawingData: {
+                    shapes: {
+                        scribbles,
+                        rectangles,
+                        circles,
+                    },
+                    colors: colorSwatch,
+                },
+            });
+            await getCanvasData();
+            toast.success("Saved successfully", {
+                duration: 2000,
+                position: "bottom-center",
+            });
+        } catch (error) {
+            console.log("Error in saving canvas", error);
+        }
+    };
     // shapes
-    const [scribbles, setScribbles] = useState<Scribble[]>([]);
-    const [rectangles, setRectangles] = useState<Rectangle[]>([]);
-    const [circles, setCircles] = useState<Circle[]>([]);
+    const [scribbles, setScribbles] = useState<Scribble[]>(
+        canvasData?.drawingData.shapes.scribbles || []
+    );
+    const [rectangles, setRectangles] = useState<Rectangle[]>(
+        canvasData?.drawingData.shapes.rectangles || []
+    );
+    const [circles, setCircles] = useState<Circle[]>(
+        canvasData?.drawingData.shapes.circles || []
+    );
 
     const startDrawing = () => {
         if (drawAction === DrawAction.Select) return;
