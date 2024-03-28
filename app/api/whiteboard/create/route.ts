@@ -6,7 +6,7 @@ export async function POST(request: NextRequest) {
     try {
         const user = await getUserFromToken(request);
         const newWhiteboard = await new WhiteBoard({
-            users: [user._id],
+            users: [],
             createdBy: user._id,
         });
         await newWhiteboard.save();

@@ -14,7 +14,7 @@ import { v4 as uuidv4 } from "uuid";
 import axios from "axios";
 import { WhiteBoardFields } from "@/types/WhiteboardFields";
 import toast from "react-hot-toast";
-
+import { io } from "socket.io-client";
 export default function Canvas({
     props,
     clearCanvas,
@@ -34,6 +34,34 @@ export default function Canvas({
     id: string;
     colorSwatch: string[];
 }) {
+    // get user details
+    const [user, setUser] = useState<{
+        username: string;
+        id: string;
+    }>({
+        username: "",
+        id: "",
+    });
+    useEffect(() => {
+        getUserDetails();
+    }, []);
+    // socket details
+    const createSocketConnection = async () => {
+        const socket = io(process.env.NEXT_PUBLIC_SOCKET_URL!, {
+            query: {
+                data: JSON.stringify({ user, whiteboardID: id }),
+            },
+        });
+    };
+    const getUserDetails = async () => {
+        try {
+            const res = await axios.get("/api/user");
+            setUser(res.data);
+        } catch (error) {
+            console.log("Error getting user details", error);
+        }
+    };
+
     const stageRef = useRef<Konva.Stage>(null);
     const currentShapeRef = useRef<String>();
     const [drawAction, setDrawAction] = useState<DrawAction>(props.defaultMode);
@@ -64,7 +92,19 @@ export default function Canvas({
         colorSwatch,
     ]);
     // get canvas
-    const [canvasData, setCanvasData] = useState<WhiteBoardFields>();
+    const [canvasData, setCanvasData] = useState<WhiteBoardFields>({
+        createdBy: "",
+        drawingData: {
+            shapes: {
+                scribbles: [],
+                rectangles: [],
+                circles: [],
+            },
+            colors: [],
+        },
+        title: "",
+        users: [],
+    });
     const getCanvasData = async () => {
         try {
             const res = await axios.post("/api/whiteboard/get", {
@@ -82,6 +122,21 @@ export default function Canvas({
     useEffect(() => {
         getCanvasData();
     }, []);
+    const [socketConnectionCreated, setSocketConnectionCreated] =
+        useState<boolean>(false);
+    useEffect(() => {
+        if (
+            user.id === "" ||
+            id === "" ||
+            canvasData.createdBy === "" ||
+            socketConnectionCreated
+        )
+            return;
+        if (canvasData.createdBy !== user.id) {
+            createSocketConnection();
+            setSocketConnectionCreated(true);
+        }
+    }, [user, id, canvasData, socketConnectionCreated]);
     // clear canvas
     const handleClearCanvas = async () => {
         if (drawingLayer.current === null) return;
