@@ -90,25 +90,7 @@ export default function Whiteboard({ params }: { params: { id: string } }) {
         x: 0,
         y: 0,
     });
-    useEffect(() => {
-        if (!socket) return;
-        socket.on("user-connected", (data) => {
-            console.log("connected", data);
-        });
 
-        socket.on("user-disconnected", (data) => {
-            console.log("disconnected", data);
-        });
-        socket.on("cursor-moving", (data: { x: number; y: number }) => {
-            setCursorPosition(data);
-        });
-        socket.on("clear-canvas", () => {
-            setClearCanvas(true);
-            setTimeout(() => {
-                setClearCanvas(false);
-            }, 0);
-        });
-    }, [socket]);
     const handleResize = () => {
         if (parent.current) {
             const paddingX = getComputedStyle(parent.current).paddingInline;
@@ -201,7 +183,6 @@ export default function Whiteboard({ params }: { params: { id: string } }) {
     // saving whiteboard
     const [saveCanvas, setSaveCanvas] = useState<boolean>(false);
     const handleCursorMoving = (e: React.MouseEvent) => {
-        console.log("mouse moving");
         let x = e.clientX;
         let y = e.clientY;
         if (parent.current) {
@@ -209,9 +190,27 @@ export default function Whiteboard({ params }: { params: { id: string } }) {
             x = e.clientX - rect.left;
             y = e.clientY - rect.top;
         }
-        console.log(x, y);
         socket?.emit("cursor-moving", { x, y });
     };
+    useEffect(() => {
+        if (!socket) return;
+        socket.on("user-connected", (data) => {
+            console.log("connected", data);
+        });
+
+        socket.on("user-disconnected", (data) => {
+            console.log("disconnected", data);
+        });
+        socket.on("cursor-moving", (data: { x: number; y: number }) => {
+            setCursorPosition(data);
+        });
+        socket.on("clear-canvas", () => {
+            setClearCanvas(!clearCanvas);
+            setTimeout(() => {
+                setClearCanvas(false);
+            }, 50);
+        });
+    }, [socket]);
     return (
         <main
             ref={parent}
@@ -447,7 +446,7 @@ export default function Whiteboard({ params }: { params: { id: string } }) {
                         setClearCanvas(!clearCanvas);
                         setTimeout(() => {
                             setClearCanvas(false);
-                        }, 0);
+                        }, 50);
                         socket?.emit("clear-canvas");
                     }}
                 >
