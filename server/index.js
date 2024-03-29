@@ -38,6 +38,19 @@ io.on("connection", async (socket) => {
     socket.on("cursor-moving", (data) => {
         socket.broadcast.emit("cursor-moving", data);
     });
+    // drawing shapes
+    socket.on("drawing-scribble", (data) => {
+        socket.broadcast.emit("drawing-scribble", data);
+    });
+    socket.on("drawing-rectangle", (data) => {
+        socket.broadcast.emit("drawing-rectangle", data);
+    });
+    socket.on("drawing-circle", (data) => {
+        socket.broadcast.emit("drawing-circle", data);
+    });
+    socket.on("clear-canvas", () => {
+        socket.broadcast.emit("clear-canvas");
+    });
     // user disconnected
     socket.on("disconnect", async () => {
         try {

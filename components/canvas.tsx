@@ -244,6 +244,7 @@ export default function Canvas({
                     });
                     return updatedScribbles;
                 });
+                socket?.emit("drawing-scribble", scribbles);
                 break;
             }
             case DrawAction.Rectangle: {
@@ -257,6 +258,7 @@ export default function Canvas({
                     });
                     return updatedRectangles;
                 });
+                socket?.emit("drawing-rectangle", rectangles);
                 break;
             }
             case DrawAction.Circle: {
@@ -272,6 +274,7 @@ export default function Canvas({
                     });
                     return updatedCircles;
                 });
+                socket?.emit("drawing-circle", circles);
                 break;
             }
             case DrawAction.Eraser: {
@@ -296,6 +299,15 @@ export default function Canvas({
     // socket events
     useEffect(() => {
         if (!socket) return;
+        socket.on("drawing-scribble", (data: Scribble[]) => {
+            setScribbles(data);
+        });
+        socket.on("drawing-rectangle", (data: Rectangle[]) => {
+            setRectangles(data);
+        });
+        socket.on("drawing-circle", (data: Circle[]) => {
+            setCircles(data);
+        });
     }, [socket]);
     return (
         <Stage

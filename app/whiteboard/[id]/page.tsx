@@ -101,7 +101,12 @@ export default function Whiteboard({ params }: { params: { id: string } }) {
         });
         socket.on("cursor-moving", (data: { x: number; y: number }) => {
             setCursorPosition(data);
-            console.log("cursor moving", data);
+        });
+        socket.on("clear-canvas", () => {
+            setClearCanvas(true);
+            setTimeout(() => {
+                setClearCanvas(false);
+            }, 0);
         });
     }, [socket]);
     const handleResize = () => {
@@ -215,7 +220,7 @@ export default function Whiteboard({ params }: { params: { id: string } }) {
         >
             <Toaster />
             <div
-                className="absolute flex items-center gap-0.5"
+                className="absolute flex items-start gap-0.5"
                 style={{ left: cursorPosition.x, top: cursorPosition.y }}
             >
                 <FaMousePointer size={20} />
@@ -443,6 +448,7 @@ export default function Whiteboard({ params }: { params: { id: string } }) {
                         setTimeout(() => {
                             setClearCanvas(false);
                         }, 0);
+                        socket?.emit("clear-canvas");
                     }}
                 >
                     <FaTrashAlt size={24} />
