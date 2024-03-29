@@ -19,6 +19,7 @@ import {
 import { FaArrowPointer } from "react-icons/fa6";
 import { HexColorPicker } from "react-colorful";
 import axios from "axios";
+import { io, Socket } from "socket.io-client";
 export default function Whiteboard({ params }: { params: { id: string } }) {
     const parent = useRef<HTMLDivElement>(null);
     const brushBar = useRef<HTMLDivElement>(null);
@@ -41,10 +42,45 @@ export default function Whiteboard({ params }: { params: { id: string } }) {
             console.log("Error in getting whiteboard", error);
         }
     };
+    // get user details
+    const [user, setUser] = useState<{
+        username: string;
+        id: string;
+    }>({
+        username: "",
+        id: "",
+    });
+    const getUserDetails = async () => {
+        try {
+            const res = await axios.get("/api/user");
+            setUser(res.data);
+        } catch (error) {
+            console.log("Error getting user details", error);
+        }
+    };
     useEffect(() => {
         getWhiteboard();
         handleResize();
+        getUserDetails();
     }, [params.id]);
+    const [socket, setSocket] = useState<Socket | null>();
+    const [socketConnectionCreated, setsocketConnectionCreated] =
+        useState<boolean>(false);
+    // create socket conneciton
+    const createSocketConnection = async () => {
+        const socket = io(process.env.NEXT_PUBLIC_SOCKET_URL!, {
+            query: {
+                data: JSON.stringify({ user, whiteboardID: params.id }),
+            },
+        });
+        setSocket(socket);
+        setsocketConnectionCreated(true);
+    };
+    useEffect(() => {
+        if (user.id === "" || socketConnectionCreated || params.id === "")
+            return;
+        else createSocketConnection();
+    }, [user, socketConnectionCreated]);
     const handleResize = () => {
         if (parent.current) {
             const paddingX = getComputedStyle(parent.current).paddingInline;
@@ -152,6 +188,7 @@ export default function Whiteboard({ params }: { params: { id: string } }) {
                     saveCanvas={saveCanvas}
                     colorSwatch={colorSwatch}
                     id={params.id}
+                    socket={socket}
                 />
             )}
             {/* whiteboard title */}

@@ -17,26 +17,31 @@ import WhiteBoard from "./whiteboardModel.js";
 io.on("connection", async (socket) => {
     // user connected
     const data = JSON.parse(socket.handshake.query.data);
-    const whiteboard = await WhiteBoard.findById(data.whiteboardID);
+    let whiteboard = await WhiteBoard.findById(data.whiteboardID);
     try {
-        if (!whiteboard.users.includes(data.user.id) && data.user.id != "") {
+        if (
+            !whiteboard.users.includes(data.user.id) &&
+            data.user.id != "" &&
+            socket.connected
+        ) {
             whiteboard.users.push(data.user.id);
             await whiteboard.save();
+            console.log(data.user.username + " connected");
         }
-        console.log(data.user.username + " connected");
     } catch (error) {
         console.log("Error adding user to whiteboard" + error);
     }
     // user disconnected
     socket.on("disconnect", async () => {
         try {
+            whiteboard = await WhiteBoard.findById(data.whiteboardID);
             if (whiteboard && whiteboard.users.includes(data.user.id)) {
                 whiteboard.users = whiteboard.users.filter(
                     (id) => id != data.user.id
                 );
                 await whiteboard.save();
+                console.log(data.user.username + " disconnected");
             }
-            console.log(data.user.username + " disconnected");
         } catch (error) {
             console.log("Error removing user from whiteboard" + error);
         }
