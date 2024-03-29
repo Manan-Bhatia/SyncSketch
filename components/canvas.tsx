@@ -36,7 +36,6 @@ export default function Canvas({
     colorSwatch: string[];
     socket: Socket | null | undefined;
 }) {
-    
     const stageRef = useRef<Konva.Stage>(null);
     const currentShapeRef = useRef<String>();
     const [drawAction, setDrawAction] = useState<DrawAction>(props.defaultMode);
@@ -294,6 +293,10 @@ export default function Canvas({
     const onBackgroundClick = (e: KonvaEventObject<MouseEvent>) => {
         transformerRef.current?.nodes([]);
     };
+    // socket events
+    useEffect(() => {
+        if (!socket) return;
+    }, [socket]);
     return (
         <Stage
             ref={stageRef}

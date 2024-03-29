@@ -27,10 +27,17 @@ io.on("connection", async (socket) => {
             whiteboard.users.push(data.user.id);
             await whiteboard.save();
             console.log(data.user.username + " connected");
+            socket.broadcast.emit("user-connected", {
+                users: whiteboard.users,
+            });
         }
     } catch (error) {
         console.log("Error adding user to whiteboard" + error);
     }
+    // cursor movement
+    socket.on("cursor-moving", (data) => {
+        socket.broadcast.emit("cursor-moving", data);
+    });
     // user disconnected
     socket.on("disconnect", async () => {
         try {
@@ -41,6 +48,9 @@ io.on("connection", async (socket) => {
                 );
                 await whiteboard.save();
                 console.log(data.user.username + " disconnected");
+                socket.broadcast.emit("user-disconnected", {
+                    users: whiteboard.users,
+                });
             }
         } catch (error) {
             console.log("Error removing user from whiteboard" + error);

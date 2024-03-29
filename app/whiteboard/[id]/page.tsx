@@ -15,6 +15,7 @@ import {
     FaEdit,
     FaCheck,
     FaSave,
+    FaMousePointer,
 } from "react-icons/fa";
 import { FaArrowPointer } from "react-icons/fa6";
 import { HexColorPicker } from "react-colorful";
@@ -81,6 +82,28 @@ export default function Whiteboard({ params }: { params: { id: string } }) {
             return;
         else createSocketConnection();
     }, [user, socketConnectionCreated]);
+    //TODO use this data to show currently connected users
+    const [cursorPosition, setCursorPosition] = useState<{
+        x: number;
+        y: number;
+    }>({
+        x: 0,
+        y: 0,
+    });
+    useEffect(() => {
+        if (!socket) return;
+        socket.on("user-connected", (data) => {
+            console.log("connected", data);
+        });
+
+        socket.on("user-disconnected", (data) => {
+            console.log("disconnected", data);
+        });
+        socket.on("cursor-moving", (data: { x: number; y: number }) => {
+            setCursorPosition(data);
+            console.log("cursor moving", data);
+        });
+    }, [socket]);
     const handleResize = () => {
         if (parent.current) {
             const paddingX = getComputedStyle(parent.current).paddingInline;
@@ -172,9 +195,34 @@ export default function Whiteboard({ params }: { params: { id: string } }) {
     };
     // saving whiteboard
     const [saveCanvas, setSaveCanvas] = useState<boolean>(false);
+    const handleCursorMoving = (e: React.MouseEvent) => {
+        console.log("mouse moving");
+        let x = e.clientX;
+        let y = e.clientY;
+        if (parent.current) {
+            const rect = parent.current.getBoundingClientRect();
+            x = e.clientX - rect.left;
+            y = e.clientY - rect.top;
+        }
+        console.log(x, y);
+        socket?.emit("cursor-moving", { x, y });
+    };
     return (
-        <main ref={parent} className="h-full w-full relative">
+        <main
+            ref={parent}
+            className="h-full w-full relative"
+            onMouseMove={(e) => handleCursorMoving(e)}
+        >
             <Toaster />
+            <div
+                className="absolute flex items-center gap-0.5"
+                style={{ left: cursorPosition.x, top: cursorPosition.y }}
+            >
+                <FaMousePointer size={20} />
+                <span className="bg-black text-white p-4 flex items-center justify-center rounded-full uppercase h-5 aspect-square">
+                    M
+                </span>
+            </div>
             {size.width > 1 && size.height > 1 && (
                 <Canvas
                     props={{
