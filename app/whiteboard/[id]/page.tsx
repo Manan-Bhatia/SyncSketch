@@ -280,19 +280,17 @@ export default function Whiteboard({ params }: { params: { id: string } }) {
                 {connectedUsers &&
                     connectedUsers.length > 0 &&
                     connectedUsers.map((Cuser, index) => (
-                        <>
-                            <div
-                                key={index}
-                                className="bg-black group text-white p-4 h-5 aspect-square flex items-center justify-center rounded-full capitalize z-50 hover:aspect-auto w-fit"
-                            >
-                                <span className="block group-hover:hidden">
-                                    {Cuser.username.slice(0, 1)}
-                                </span>
-                                <span className="hidden group-hover:block">
-                                    {Cuser.username}
-                                </span>
-                            </div>
-                        </>
+                        <div
+                            key={index}
+                            className="bg-black group text-white p-4 h-5 aspect-square flex items-center justify-center rounded-full capitalize z-50 hover:aspect-auto w-fit"
+                        >
+                            <span className="block group-hover:hidden">
+                                {Cuser.username.slice(0, 1)}
+                            </span>
+                            <span className="hidden group-hover:block">
+                                {Cuser.username}
+                            </span>
+                        </div>
                     ))}
             </div>
             {size.width > 1 && size.height > 1 && (
