@@ -82,7 +82,7 @@ export default function Whiteboard({ params }: { params: { id: string } }) {
             return;
         else createSocketConnection();
     }, [user, socketConnectionCreated]);
-    //TODO use this data to show currently connected users
+    // TODO: make the cursor position relative to the whiteboard irrespective of the user's screen size
     const [cursorPosition, setCursorPosition] = useState<{
         x: number;
         y: number;
@@ -192,14 +192,51 @@ export default function Whiteboard({ params }: { params: { id: string } }) {
         }
         socket?.emit("cursor-moving", { x, y });
     };
+    // connected users
+    const [connectedUsers, setConnectedUsers] = useState<
+        {
+            id: string;
+            username: string;
+        }[]
+    >([]);
+    useEffect(() => {
+        setConnectedUsers([{ id: user.id, username: user.username }]);
+    }, [user]);
     useEffect(() => {
         if (!socket) return;
-        socket.on("user-connected", (data) => {
-            console.log("connected", data);
-        });
+        socket.on(
+            "connected-users",
+            (data: {
+                connected: {
+                    id: string;
+                    username: string;
+                }[];
+            }) => {
+                data.connected.forEach((user) => {
+                    connectedUsers.forEach((Cuser) => {
+                        if (Cuser.id === user.id) return;
+                        setConnectedUsers((prev) => {
+                            return [...prev, user];
+                        });
+                    });
+                });
+            }
+        );
+        socket.on(
+            "user-connected",
+            (data: { user: { id: string; username: string } }) => {
+                console.log(data.user.username + " connected");
+                setConnectedUsers((prev) => {
+                    return [...prev, data.user];
+                });
+            }
+        );
 
         socket.on("user-disconnected", (data) => {
-            console.log("disconnected", data);
+            console.log(data.user.username + " disconnected");
+            setConnectedUsers((prev) => {
+                return prev.filter((user) => user.id !== data.user.id);
+            });
         });
         socket.on("cursor-moving", (data: { x: number; y: number }) => {
             setCursorPosition(data);
@@ -218,14 +255,45 @@ export default function Whiteboard({ params }: { params: { id: string } }) {
             onMouseMove={(e) => handleCursorMoving(e)}
         >
             <Toaster />
-            <div
-                className="absolute flex items-start gap-0.5"
-                style={{ left: cursorPosition.x, top: cursorPosition.y }}
-            >
-                <FaMousePointer size={20} />
-                <span className="bg-black text-white p-4 flex items-center justify-center rounded-full uppercase h-5 aspect-square">
-                    M
-                </span>
+            {connectedUsers &&
+                connectedUsers.length > 0 &&
+                connectedUsers.map((Euser, index) => {
+                    if (Euser.id === user.id) return null;
+                    return (
+                        <div
+                            key={index}
+                            className="absolute flex items-start gap-0.5 z-50"
+                            style={{
+                                left: cursorPosition.x,
+                                top: cursorPosition.y,
+                            }}
+                        >
+                            <FaMousePointer size={20} />
+                            <span className="bg-black text-white p-1 rounded-md">
+                                {Euser.username}
+                            </span>
+                        </div>
+                    );
+                })}
+            {/* connected users section */}
+            <div className=" flex flex-col items-end gap-2 absolute right-2 top-2  p-1.5 rounded-md">
+                {connectedUsers &&
+                    connectedUsers.length > 0 &&
+                    connectedUsers.map((Cuser, index) => (
+                        <>
+                            <div
+                                key={index}
+                                className="bg-black group text-white p-4 h-5 aspect-square flex items-center justify-center rounded-full capitalize z-50 hover:aspect-auto w-fit"
+                            >
+                                <span className="block group-hover:hidden">
+                                    {Cuser.username.slice(0, 1)}
+                                </span>
+                                <span className="hidden group-hover:block">
+                                    {Cuser.username}
+                                </span>
+                            </div>
+                        </>
+                    ))}
             </div>
             {size.width > 1 && size.height > 1 && (
                 <Canvas

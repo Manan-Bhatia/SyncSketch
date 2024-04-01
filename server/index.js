@@ -13,6 +13,7 @@ const io = new Server(httpServer, {
 import connect from "./dbConfig.js";
 connect();
 import WhiteBoard from "./whiteboardModel.js";
+import { getUsersFromArray } from "./getUsersFromArray.js";
 
 io.on("connection", async (socket) => {
     // user connected
@@ -27,8 +28,10 @@ io.on("connection", async (socket) => {
             whiteboard.users.push(data.user.id);
             await whiteboard.save();
             console.log(data.user.username + " connected");
+            const users = await getUsersFromArray(whiteboard.users);
+            socket.emit("connected-users", { connected: users });
             socket.broadcast.emit("user-connected", {
-                users: whiteboard.users,
+                user: { id: data.user.id, username: data.user.username },
             });
         }
     } catch (error) {
@@ -62,7 +65,10 @@ io.on("connection", async (socket) => {
                 await whiteboard.save();
                 console.log(data.user.username + " disconnected");
                 socket.broadcast.emit("user-disconnected", {
-                    users: whiteboard.users,
+                    user: {
+                        id: data.user.id,
+                        username: data.user.username,
+                    },
                 });
             }
         } catch (error) {
