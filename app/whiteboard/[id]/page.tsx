@@ -2,7 +2,6 @@
 import { DrawAction } from "@/helpers/canvasHelper";
 import dynamic from "next/dynamic";
 import { ReactNode, useEffect, useRef, useState } from "react";
-const Canvas = dynamic(() => import("@/components/canvas"), { ssr: false });
 import { Toaster, toast } from "react-hot-toast";
 import {
     FaPencilAlt,
@@ -21,6 +20,7 @@ import { FaArrowPointer } from "react-icons/fa6";
 import { HexColorPicker } from "react-colorful";
 import axios from "axios";
 import { io, Socket } from "socket.io-client";
+const Canvas = dynamic(() => import("@/components/canvas"), { ssr: false });
 export default function Whiteboard({ params }: { params: { id: string } }) {
     const parent = useRef<HTMLDivElement>(null);
     const brushBar = useRef<HTMLDivElement>(null);
@@ -370,7 +370,10 @@ export default function Whiteboard({ params }: { params: { id: string } }) {
                     .filter((key) => isNaN(Number(key)))
                     .map((action, index) => {
                         return (
-                            <div className="relative flex items-center">
+                            <div
+                                className="relative flex items-center"
+                                key={index}
+                            >
                                 <button
                                     className={
                                         "p-1.5 peer" +
@@ -390,7 +393,6 @@ export default function Whiteboard({ params }: { params: { id: string } }) {
                                             ]
                                         )
                                     }
-                                    key={index}
                                 >
                                     {
                                         icons[
@@ -467,6 +469,7 @@ export default function Whiteboard({ params }: { params: { id: string } }) {
                         id="hexCode"
                         maxLength={6}
                         value={color.slice(1)}
+                        onChange={(e) => setColor("#" + e.target.value)}
                         className="focus:outline-none px-1 w-20 rounded-e-md border-r-2 border-y-2 border-gray-200 mr-1"
                     />
                     {colorSwatch.includes(color) ? (
