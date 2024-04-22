@@ -17,21 +17,28 @@ import { getUsersFromArray } from "./getUsersFromArray.js";
 
 io.on("connection", async (socket) => {
     // user connected
-    const data = JSON.parse(socket.handshake.query.data);
-    let whiteboard = await WhiteBoard.findById(data.whiteboardID);
+    const userData = JSON.parse(socket.handshake.query.data);
+    let whiteboard = await WhiteBoard.findById(userData.whiteboardID);
     try {
         if (
-            !whiteboard.users.includes(data.user.id) &&
-            data.user.id != "" &&
+            !whiteboard.users.includes(userData.user.id) &&
+            userData.user.id != "" &&
             socket.connected
         ) {
-            whiteboard.users.push(data.user.id);
+            whiteboard.users.push(userData.user.id);
             await whiteboard.save();
-            console.log(data.user.username + " connected");
+            // joining a room
+            socket.join(userData.whiteboardID);
+            console.log(userData.user.username + " connected");
+            // getting the users for self
             const users = await getUsersFromArray(whiteboard.users);
             socket.emit("connected-users", { connected: users });
-            socket.broadcast.emit("user-connected", {
-                user: { id: data.user.id, username: data.user.username },
+            // emit to users working in the same room
+            socket.to(userData.whiteboardID).emit("user-connected", {
+                user: {
+                    id: userData.user.id,
+                    username: userData.user.username,
+                },
             });
         }
     } catch (error) {
@@ -39,35 +46,38 @@ io.on("connection", async (socket) => {
     }
     // cursor movement
     socket.on("cursor-moving", (data) => {
-        socket.broadcast.emit("cursor-moving", data);
+        socket.to(userData.whiteboardID).emit("cursor-moving", data);
     });
     // drawing shapes
     socket.on("drawing-scribble", (data) => {
-        socket.broadcast.emit("drawing-scribble", data);
+        socket.to(userData.whiteboardID).emit("drawing-scribble", data);
     });
     socket.on("drawing-rectangle", (data) => {
-        socket.broadcast.emit("drawing-rectangle", data);
+        socket.to(userData.whiteboardID).emit("drawing-rectangle", data);
     });
     socket.on("drawing-circle", (data) => {
-        socket.broadcast.emit("drawing-circle", data);
+        socket.to(userData.whiteboardID).emit("drawing-circle", data);
     });
     socket.on("clear-canvas", () => {
-        socket.broadcast.emit("clear-canvas");
+        socket.to(userData.whiteboardID).emit("clear-canvas");
     });
     // user disconnected
     socket.on("disconnect", async () => {
         try {
-            whiteboard = await WhiteBoard.findById(data.whiteboardID);
-            if (whiteboard && whiteboard.users.includes(data.user.id)) {
+            whiteboard = await WhiteBoard.findById(userData.whiteboardID);
+            if (whiteboard && whiteboard.users.includes(userData.user.id)) {
                 whiteboard.users = whiteboard.users.filter(
-                    (id) => id != data.user.id
+                    (id) => id != userData.user.id
                 );
                 await whiteboard.save();
-                console.log(data.user.username + " disconnected");
-                socket.broadcast.emit("user-disconnected", {
+                // leaving the room
+                socket.leave(userData.whiteboardID);
+                console.log(userData.user.username + " disconnected");
+                // emitting to only those who are in the same room
+                socket.to(userData.whiteboardID).emit("user-disconnected", {
                     user: {
-                        id: data.user.id,
-                        username: data.user.username,
+                        id: userData.user.id,
+                        username: userData.user.username,
                     },
                 });
             }
