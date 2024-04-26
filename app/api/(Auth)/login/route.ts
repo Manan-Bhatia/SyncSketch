@@ -5,16 +5,46 @@ import User from "@/models/userModel";
 import bcryptjs from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { SignJWT } from "jose";
+import { z, ZodError } from "zod";
 
 // connect to db
 connect();
+const loginSchema = z.object({
+    email: z.string().min(1, "Email is required").email("Invalid email"),
+    password: z
+        .string()
+        .min(1, "Password is required")
+        .min(5, "Password must have more than 5 characters"),
+});
+type LoginSchemaType = z.infer<typeof loginSchema>;
+const isZodError = (error: unknown): error is ZodError => {
+    return error instanceof ZodError;
+};
 
 export async function POST(request: NextRequest) {
     try {
         const reqBody: UserObj = await request.json();
+        try {
+            loginSchema.parse(reqBody);
+        } catch (validationError: unknown) {
+            if (isZodError(validationError)) {
+                return NextResponse.json(
+                    {
+                        message: "Validation error",
+                        errors: validationError.errors,
+                    },
+                    { status: 400 }
+                );
+            } else {
+                return NextResponse.json(
+                    { message: "Validation error", error: validationError },
+                    { status: 400 }
+                );
+            }
+        }
+
         const { email, password } = reqBody;
 
-        //TODO: perform validation on email, username, password
         // check if user exists
         const user = await User.findOne({ email });
         // if does not exists, return error
