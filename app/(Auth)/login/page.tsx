@@ -5,17 +5,35 @@ import { UserObj } from "@/types/userForm";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast, Toaster } from "react-hot-toast";
+import { z } from "zod";
+import { SubmitHandler, useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { HiMiniEye, HiMiniEyeSlash } from "react-icons/hi2";
+
 export default function Login() {
     const router = useRouter();
+    const loginSchema = z.object({
+        email: z.string().min(1, "Email is required").email("Invalid email"),
+        password: z
+            .string()
+            .min(1, "Password is required")
+            .min(5, "Password must have more than 5 characters"),
+    });
+    type LoginSchemaType = z.infer<typeof loginSchema>;
+    const {
+        register,
+        handleSubmit,
+        formState: { errors },
+    } = useForm<LoginSchemaType>({ resolver: zodResolver(loginSchema) });
+
     const [user, setUser] = useState<UserObj>({
         email: "",
         username: "",
         password: "",
     });
-    const handleFormSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-        e.preventDefault();
+    const handleFormSubmit: SubmitHandler<LoginSchemaType> = async (data) => {
         try {
-            const response = await axios.post("/api/login", user);
+            const response = await axios.post("/api/login", data);
             if (response.status === 200) {
                 toast.success(response.data.message, {
                     duration: 2000,
@@ -30,9 +48,9 @@ export default function Login() {
                 duration: 2000,
                 position: "bottom-center",
             });
-            console.log("Error in login", error);
         }
     };
+    const [showPassword, setShowPassword] = useState<boolean>(false);
     return (
         <>
             <Toaster />
@@ -44,23 +62,16 @@ export default function Login() {
                 below to access your collaborative workspace.
             </p>
             <form
-                onSubmit={(e) => handleFormSubmit(e)}
+                onSubmit={handleSubmit(handleFormSubmit)}
                 className="space-y-2 md:space-y-4 mb-4 md:mb-6"
             >
-                <div className="relative w-full  flex">
+                <div className="relative w-full  flex flex-col">
                     <input
                         id="email"
                         className="text-sm md:text-base peer w-full px-4 py-2 border rounded focus:outline-none focus:border-blue-500 placeholder-transparent"
-                        required
-                        onChange={(e) =>
-                            setUser((prevUser: UserObj) => ({
-                                ...prevUser,
-                                email: e.target.value,
-                            }))
-                        }
-                        type="text"
+                        {...register("email")}
                         placeholder="Email"
-                        value={user.email}
+                        autoComplete="email"
                     />
                     <label
                         htmlFor="email"
@@ -69,21 +80,19 @@ export default function Login() {
                         Email
                     </label>
                 </div>
-                <div className="relative flex items-center w-full">
+                {errors.email && (
+                    <p className="text-red-500 text-sm mt-1">
+                        {errors.email.message}
+                    </p>
+                )}
+                <div className="relative flex w-full flex-col justify-center">
                     <input
                         id="username"
                         className="peer text-sm md:text-base w-full px-4 py-2 border rounded focus:outline-none focus:border-blue-500 placeholder-transparent"
-                        required
-                        type="password"
-                        autoComplete="off"
-                        value={user.password}
-                        onChange={(e) =>
-                            setUser((prevUser: UserObj) => ({
-                                ...prevUser,
-                                password: e.target.value,
-                            }))
-                        }
+                        {...register("password")}
                         placeholder="Password"
+                        type="password"
+                        autoComplete="current-password"
                     />
                     <label
                         className="absolute text-sm md:text-base   peer-placeholder-shown:top-2 left-3 text-gray-600 peer-placeholder-shown:text-gray-400 -top-3 duration-300 peer-focus:-top-3 peer-focus:text-gray-600 peer-focus:bg-white bg-white px-1"
@@ -91,7 +100,25 @@ export default function Login() {
                     >
                         Password
                     </label>
+                    {showPassword ? (
+                        <HiMiniEye
+                            size={24}
+                            className="absolute right-4"
+                            onClick={() => setShowPassword(!showPassword)}
+                        />
+                    ) : (
+                        <HiMiniEyeSlash
+                            size={24}
+                            className="absolute right-4"
+                            onClick={() => setShowPassword(!showPassword)}
+                        />
+                    )}
                 </div>
+                {errors.password && (
+                    <p className="text-red-500 text-sm mt-1">
+                        {errors.password.message}
+                    </p>
+                )}
                 <button
                     className="w-full bg-blue-500 text-white px-4 py-2 rounded focus:outline-none hover:bg-blue-600"
                     type="submit"

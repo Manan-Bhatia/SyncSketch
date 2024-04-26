@@ -5,17 +5,54 @@ import { UserObj } from "@/types/userForm";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Toaster, toast } from "react-hot-toast";
+import { z } from "zod";
+import { SubmitHandler, useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { HiMiniEye, HiMiniEyeSlash } from "react-icons/hi2";
 export default function Signup() {
     const router = useRouter();
-    const [user, setUser] = useState<UserObj>({
-        email: "",
-        username: "",
-        password: "",
+    const signUpSchema = z.object({
+        email: z.string().min(1, "Email is required").email("Invalid email"),
+        username: z
+            .string()
+            .min(3, "Username should be atleast 3 characters")
+            .max(50, "Username should be less than 50 characters")
+            .refine(
+                (val) => {
+                    return /^[a-zA-Z0-9]+$/.test(val);
+                },
+                {
+                    message: "Username should only contain letters and numbers",
+                }
+            ),
+        password: z
+            .string()
+            .min(1, "Password is required")
+            .min(5, "Password must have more than 5 characters")
+            .refine(
+                (val) => {
+                    return (
+                        /[a-z]/.test(val) &&
+                        /[A-Z]/.test(val) &&
+                        /\d/.test(val) &&
+                        /[!@#$%^&*]/.test(val)
+                    );
+                },
+                {
+                    message:
+                        "Password must have at least 1 uppercase, 1 lowercase, 1 number and atleast 1 special character",
+                }
+            ),
     });
-    const handleFormSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-        e.preventDefault();
+    type SignUpSchemaType = z.infer<typeof signUpSchema>;
+    const {
+        register,
+        handleSubmit,
+        formState: { errors },
+    } = useForm<SignUpSchemaType>({ resolver: zodResolver(signUpSchema) });
+    const handleFormSubmit: SubmitHandler<SignUpSchemaType> = async (data) => {
         try {
-            const response = await axios.post("/api/signup", user);
+            const response = await axios.post("/api/signup", data);
             if (response.status === 201) {
                 toast.success(response.data.message, {
                     duration: 2000,
@@ -30,9 +67,9 @@ export default function Signup() {
                 duration: 2000,
                 position: "bottom-center",
             });
-            console.log("Error in signup", error);
         }
     };
+    const [showPassword, setShowPassword] = useState<boolean>(false);
     return (
         <>
             <Toaster />
@@ -45,22 +82,15 @@ export default function Signup() {
             </p>
             <form
                 className="space-y-2 md:space-y-4 mb-4 md:mb-6"
-                onSubmit={(e) => handleFormSubmit(e)}
+                onSubmit={handleSubmit(handleFormSubmit)}
             >
-                <div className="w-full relative flex">
+                <div className="w-full relative flex flex-col">
                     <input
                         id="username"
                         className="text-sm md:text-base peer w-full px-4 py-2 border rounded focus:outline-none focus:border-blue-500 placeholder-transparent"
-                        required
-                        onChange={(e) =>
-                            setUser((prevUser: UserObj) => ({
-                                ...prevUser,
-                                username: e.target.value,
-                            }))
-                        }
-                        type="text"
+                        {...register("username")}
                         placeholder="Username"
-                        value={user.username}
+                        autoComplete="username"
                     />
                     <label
                         className="absolute  text-sm md:text-base peer-placeholder-shown:top-2 left-3 text-gray-600 peer-placeholder-shown:text-gray-400 -top-3 duration-300 peer-focus:-top-3 peer-focus:text-gray-600 peer-focus:bg-white bg-white px-1"
@@ -69,20 +99,18 @@ export default function Signup() {
                         Username
                     </label>
                 </div>
-                <div className="w-full relative flex">
+                {errors.username && (
+                    <p className="text-red-500 text-sm mt-1">
+                        {errors.username.message}
+                    </p>
+                )}
+                <div className="w-full relative flex flex-col">
                     <input
-                        required
                         className="text-sm md:text-base peer w-full px-4 py-2 border rounded focus:outline-none focus:border-blue-500 placeholder-transparent"
-                        onChange={(e) =>
-                            setUser((prevUser: UserObj) => ({
-                                ...prevUser,
-                                email: e.target.value,
-                            }))
-                        }
-                        type="text"
-                        value={user.email}
                         placeholder="Email"
+                        {...register("email")}
                         id="email"
+                        autoComplete="email"
                     />
                     <label
                         className="absolute  text-sm md:text-base peer-placeholder-shown:top-2 left-3 text-gray-600 peer-placeholder-shown:text-gray-400 -top-3 duration-300 peer-focus:-top-3 peer-focus:text-gray-600 peer-focus:bg-white bg-white px-1"
@@ -91,21 +119,19 @@ export default function Signup() {
                         Email
                     </label>
                 </div>
-                <div className="w-full relative flex">
+                {errors.email && (
+                    <p className="text-red-500 text-sm mt-1">
+                        {errors.email.message}
+                    </p>
+                )}
+                <div className="w-full relative flex flex-col justify-center">
                     <input
-                        required
-                        type="password"
+                        type={showPassword ? "text" : "password"}
                         className="text-sm md:text-base peer w-full px-4 py-2 border rounded focus:outline-none focus:border-blue-500 placeholder-transparent"
-                        autoComplete="off"
-                        value={user.password}
-                        onChange={(e) =>
-                            setUser((prevUser: UserObj) => ({
-                                ...prevUser,
-                                password: e.target.value,
-                            }))
-                        }
+                        {...register("password")}
                         placeholder="Password"
                         id="password"
+                        autoComplete="current-password"
                     />
                     <label
                         className="absolute  text-sm md:text-base peer-placeholder-shown:top-2 left-3 text-gray-600 peer-placeholder-shown:text-gray-400 -top-3 duration-300 peer-focus:-top-3 peer-focus:text-gray-600 peer-focus:bg-white bg-white px-1"
@@ -113,7 +139,25 @@ export default function Signup() {
                     >
                         Password
                     </label>
+                    {showPassword ? (
+                        <HiMiniEye
+                            size={24}
+                            className="absolute right-4"
+                            onClick={() => setShowPassword(!showPassword)}
+                        />
+                    ) : (
+                        <HiMiniEyeSlash
+                            size={24}
+                            className="absolute right-4"
+                            onClick={() => setShowPassword(!showPassword)}
+                        />
+                    )}
                 </div>
+                {errors.password && (
+                    <p className="text-red-500 text-sm mt-1">
+                        {errors.password.message}
+                    </p>
+                )}
                 <button
                     className="w-full bg-blue-500 text-white px-4 py-2 rounded focus:outline-none hover:bg-blue-600"
                     type="submit"
