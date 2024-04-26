@@ -69,19 +69,30 @@ export default function Whiteboard({ params }: { params: { id: string } }) {
         useState<boolean>(false);
     // create socket conneciton
     const createSocketConnection = async () => {
-        const socket = io(process.env.NEXT_PUBLIC_SOCKET_URL!, {
-            query: {
-                data: JSON.stringify({ user, whiteboardID: params.id }),
-            },
-        });
-        setSocket(socket);
-        setsocketConnectionCreated(true);
+        try {
+            const newSocket = io(process.env.NEXT_PUBLIC_SOCKET_URL!, {
+                query: {
+                    data: JSON.stringify({ user, whiteboardID: params.id }),
+                },
+            });
+            setSocket(newSocket);
+            setsocketConnectionCreated(true);
+        } catch (error) {
+            console.error("Error creating socket connection:", error);
+        }
     };
     useEffect(() => {
         if (user.id === "" || socketConnectionCreated || params.id === "")
             return;
         else createSocketConnection();
     }, [user, socketConnectionCreated]);
+    useEffect(() => {
+        return () => {
+            if (socket) {
+                socket.disconnect();
+            }
+        };
+    }, [socket, user, socketConnectionCreated]);
     // TODO: make the cursor position relative to the whiteboard irrespective of the user's screen size
     const [cursorPosition, setCursorPosition] = useState<{
         x: number;

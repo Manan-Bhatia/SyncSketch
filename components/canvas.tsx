@@ -68,6 +68,7 @@ export default function Canvas({
     // get canvas
     const [canvasData, setCanvasData] = useState<WhiteBoardFields>({
         createdBy: "",
+        _id: "",
         drawingData: {
             shapes: {
                 scribbles: [],
