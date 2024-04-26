@@ -91,7 +91,7 @@ export default function Login() {
                         className="peer text-sm md:text-base w-full px-4 py-2 border rounded focus:outline-none focus:border-blue-500 placeholder-transparent"
                         {...register("password")}
                         placeholder="Password"
-                        type="password"
+                        type={showPassword ? "text" : "password"}
                         autoComplete="current-password"
                     />
                     <label
