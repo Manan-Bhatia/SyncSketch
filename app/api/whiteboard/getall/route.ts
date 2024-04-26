@@ -12,6 +12,11 @@ export async function GET(request: NextRequest) {
         if (user) {
             const whiteboards = await WhiteBoard.find({ createdBy: user._id });
             return NextResponse.json(whiteboards, { status: 200 });
+        } else {
+            return NextResponse.json(
+                { message: "User not found" },
+                { status: 500 }
+            );
         }
     } catch (error) {
         return NextResponse.json(
